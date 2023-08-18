@@ -9,7 +9,7 @@ import { AuthMiddleware } from './auth/middlewares/auth.middelware';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://localhost:27017/messanger'),
+    MongooseModule.forRoot('mongodb://localhost:27017/messenger'),
     AuthModule,
     UsersModule,
     DialogsModule,

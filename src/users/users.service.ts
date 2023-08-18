@@ -6,6 +6,7 @@ import { UserRequestInterface } from './types/user-request.interface';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { LoginUserDto } from './dto/login-user.dto';
+import {Socket} from "socket.io";
 
 @Injectable()
 export class UsersService {
@@ -39,5 +40,9 @@ export class UsersService {
       throw new HttpException('wrong email or password', HttpStatus.FORBIDDEN);
     }
     return user;
+  }
+
+  async updateSocketId(user: User, socketId: string | null): Promise<void> {
+    await this.userModel.updateOne({username: user.username}, {socketId});
   }
 }

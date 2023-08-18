@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import * as bcrypt from 'bcrypt';
+import {Socket} from "socket.io";
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -11,6 +12,13 @@ export class User {
 
   @Prop()
   password: string;
+
+  @Prop({
+    default() {
+      return null;
+    },
+  })
+  socketId: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

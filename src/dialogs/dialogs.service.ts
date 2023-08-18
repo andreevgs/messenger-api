@@ -24,8 +24,13 @@ export class DialogsService {
       participants: [currentUser, participantUser],
     }).save();
     return {
-      ...newDialog.toObject(),
-      companionUsername: participantUser.username,
+      dialog: {
+        ...newDialog.toObject(),
+      },
+      companion: {
+        username: participantUser.username,
+        socketId: participantUser.socketId,
+      }
     };
   }
 

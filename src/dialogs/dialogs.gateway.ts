@@ -13,6 +13,8 @@ import { CreateDialogDto } from './dto/create-dialog.dto';
 import { NewMessageDto } from './dto/new-message.dto';
 import { AuthService } from '../auth/auth.service';
 import { FindParticipantDto } from './dto/find-participant.dto';
+import {UsersService} from "../users/users.service";
+import {TargetDialogDto} from "./dto/target-dialog.dto";
 
 @WebSocketGateway({
   cors: {
@@ -25,6 +27,7 @@ export class DialogsGateway
   constructor(
     private readonly dialogsService: DialogsService,
     private readonly authService: AuthService,
+    private readonly usersService: UsersService,
   ) {}
 
   @WebSocketServer()
@@ -35,6 +38,7 @@ export class DialogsGateway
       socket.handshake.headers.authorization,
     );
     if (user) {
+      await this.usersService.updateSocketId(user, socket.id);
       console.log(`${socket.id} connected`);
       const dialogs = await this.dialogsService.findAllDialogs(user);
       console.log(dialogs);
@@ -49,6 +53,10 @@ export class DialogsGateway
     }
   }
   async handleDisconnect(socket: Socket) {
+    const user = await this.authService.verifyAccessToken(
+        socket.handshake.headers.authorization,
+    );
+    await this.usersService.updateSocketId(user, null);
     console.log(`${socket.id} disconnected`);
   }
 
@@ -81,10 +89,17 @@ export class DialogsGateway
       socket.handshake.headers.authorization,
     );
     const dialog = await this.dialogsService.create(
-      currentUser,
-      createDialogDto,
+        currentUser,
+        createDialogDto,
     );
-    socket.emit('createDialog', dialog);
+    const companionUserSocket = await this.server.sockets.sockets.get(dialog.companion.socketId);
+    if(companionUserSocket){
+      companionUserSocket.join(dialog.dialog['_id'].toString());
+    }
+    await socket.join(dialog.dialog['_id'].toString());
+    console.log(dialog.dialog['_id'].toString(), socket.id, dialog.companion.socketId);
+    this.server.to(socket.id).emit('createDialog', {...dialog.dialog, companionUsername: dialog.companion.username});
+    this.server.to(dialog.companion.socketId).emit('createDialog', {...dialog.dialog, companionUsername: currentUser.username});
   }
 
   @SubscribeMessage('newMessage')
@@ -105,4 +120,12 @@ export class DialogsGateway
       .to(newMessageDto.dialogObjectId.toString())
       .emit('newMessage', { ...newMessage, sentByCurrentUser });
   }
+
+  // @SubscribeMessage('startTypingProcess')
+  // async StartTypingProcess(
+  //     @ConnectedSocket() socket: Socket,
+  //     @MessageBody() targetDialogDto: TargetDialogDto,
+  // ) {
+  //   socket.broadcast.to(targetDialogDto.dialogObjectId).emit('startTypingProcess', '');
+  // }
 }
