@@ -100,51 +100,67 @@ export class DialogsService {
   }
 
   async findParticipant(
-    findParticipantDto: FindParticipantDto,
-    currentUser: User,
+      findParticipantDto: FindParticipantDto,
+      currentUser: User,
   ) {
-    const dialogIds = await this.dialogModel
-      .find({ participants: currentUser['_id'] })
-      .distinct('_id')
-      .exec();
-    const nameFilter = findParticipantDto.username
-      ? { username: new RegExp(findParticipantDto.username, 'i') }
-      : {};
+    const dialogParticipantIds = await this.dialogModel
+        .find({ participants: currentUser['_id'] })
+        .distinct('participants');
 
-    const users = await this.userModel
-      .aggregate([
-        {
-          $match: {
-            _id: { $ne: currentUser['_id'].toString() },
-            ...nameFilter,
-          },
-        },
-        {
-          $lookup: {
-            from: this.dialogModel.collection.name,
-            let: { userId: '$_id' },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $and: [
-                      { $in: ['$$userId', '$participants'] },
-                      { $not: { $in: ['$id', dialogIds] } },
-                    ],
-                  },
-                },
-              },
-            ],
-            as: 'dialogs',
-          },
-        },
-        {
-          $match: {
-            dialogs: { $size: 0 },
-          },
-        },
-      ])
-      .exec();
-    return users;
+    const usersNotInDialog = await this.userModel.find({
+      _id: { $nin: dialogParticipantIds, $ne: currentUser['_id'] },
+      username: { $regex: findParticipantDto.username, $options: 'i' }
+    }).limit(5);
+
+    return usersNotInDialog;
   }
+
+  // async findParticipant(
+  //   findParticipantDto: FindParticipantDto,
+  //   currentUser: User,
+  // ) {
+  //   const dialogIds = await this.dialogModel
+  //     .find({ participants: currentUser['_id'] })
+  //     .distinct('_id')
+  //     .exec();
+  //   const nameFilter = findParticipantDto.username
+  //     ? { username: new RegExp(findParticipantDto.username, 'i') }
+  //     : {};
+  //
+  //   const users = await this.userModel
+  //     .aggregate([
+  //       {
+  //         $match: {
+  //           _id: { $ne: currentUser['_id'].toString() },
+  //           ...nameFilter,
+  //         },
+  //       },
+  //       {
+  //         $lookup: {
+  //           from: this.dialogModel.collection.name,
+  //           let: { userId: '$_id' },
+  //           pipeline: [
+  //             {
+  //               $match: {
+  //                 $expr: {
+  //                   $and: [
+  //                     { $in: ['$$userId', '$participants'] },
+  //                     { $not: { $in: ['$id', dialogIds] } },
+  //                   ],
+  //                 },
+  //               },
+  //             },
+  //           ],
+  //           as: 'dialogs',
+  //         },
+  //       },
+  //       {
+  //         $match: {
+  //           dialogs: { $size: 0 },
+  //         },
+  //       },
+  //     ])
+  //     .exec();
+  //   return users;
+  // }
 }

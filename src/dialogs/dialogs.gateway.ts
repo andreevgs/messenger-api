@@ -121,11 +121,19 @@ export class DialogsGateway
       .emit('newMessage', { ...newMessage, sentByCurrentUser });
   }
 
-  // @SubscribeMessage('startTypingProcess')
-  // async StartTypingProcess(
-  //     @ConnectedSocket() socket: Socket,
-  //     @MessageBody() targetDialogDto: TargetDialogDto,
-  // ) {
-  //   socket.broadcast.to(targetDialogDto.dialogObjectId).emit('startTypingProcess', '');
-  // }
+  @SubscribeMessage('startTypingProcess')
+  async startTypingProcess(
+      @ConnectedSocket() socket: Socket,
+      @MessageBody() targetDialogDto: TargetDialogDto,
+  ) {
+    socket.broadcast.to(targetDialogDto.dialogObjectId.toString()).emit('startTypingProcess', {...targetDialogDto} as any);
+  }
+
+  @SubscribeMessage('endTypingProcess')
+  async endTypingProcess(
+      @ConnectedSocket() socket: Socket,
+      @MessageBody() targetDialogDto: TargetDialogDto,
+  ) {
+    socket.broadcast.to(targetDialogDto.dialogObjectId.toString()).emit('endTypingProcess', {...targetDialogDto} as any);
+  }
 }
